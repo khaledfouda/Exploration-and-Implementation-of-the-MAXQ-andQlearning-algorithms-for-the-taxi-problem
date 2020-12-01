@@ -30,9 +30,10 @@ render <- function(state){
 render(c(1,2,1,1))
 #--------------------------------
 encode <- function(s){
-  # encode the set(a,b,c,d) where a,b,c can have values from 0 to 4 and d can have values
-  # from 0 to 3. 
-  # then the encoded variable can have values from 1 to 500
+  # encode the state(a,b,c,d) where a,b,c can have values from 1 to 5 and d can have values
+  # from 1 to 4. 
+  # then the encoded variable can have values between 1 and 500
+  s = s-1
   return(4*(5*(5*s[1]+s[2])+s[2])+s[4])
 }
 decode <- function(i){
@@ -43,10 +44,10 @@ decode <- function(i){
   i <- i%/%5
   b <- i%%5
   i <- i%/%5
-  return(c(i,b,c,d))
+  return(c(i+1,b+1,c+1,d+1))
 }
 encode(c(3,3,3,3))
-decode(375)
+decode(250)
 
 #-----------------------------
 loc.indx <- function(i){
