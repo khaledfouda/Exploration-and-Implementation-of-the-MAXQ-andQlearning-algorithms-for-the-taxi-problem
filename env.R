@@ -29,11 +29,11 @@ render <- function(state){
 }
 render(c(1,2,1,1))
 #--------------------------------
-encode <- function(a, b, c, d){
+encode <- function(s){
   # encode the set(a,b,c,d) where a,b,c can have values from 0 to 4 and d can have values
   # from 0 to 3. 
   # then the encoded variable can have values from 1 to 500
-  return(4*(5*(5*a+b)+c)+d)
+  return(4*(5*(5*s[1]+s[2])+s[2])+s[4])
 }
 decode <- function(i){
   # the inverse of encode()
@@ -45,7 +45,7 @@ decode <- function(i){
   i <- i%/%5
   return(c(i,b,c,d))
 }
-encode(3,3,3,3)
+encode(c(3,3,3,3))
 decode(375)
 
 #-----------------------------
