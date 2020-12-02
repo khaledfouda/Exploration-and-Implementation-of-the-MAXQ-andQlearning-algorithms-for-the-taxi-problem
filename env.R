@@ -20,9 +20,26 @@ render <- function(state){
   if(state[3]!=5){
     ploc <- loc.indx(state[3])
     dloc <- loc.indx(state[4])
-    out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
-                         red(substr(out[loc[1]],2*loc[2],2*loc[2])),
-                         substr(out[loc[1]],2*loc[2]+1,11))
+    if(ploc[1]!= dloc[1]){
+      out[ploc[1]] = paste0(substr(out[ploc[1]],1,2*ploc[2]-1),
+                           red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                           substr(out[ploc[1]],2*ploc[2]+1,11))
+      out[dloc[1]] = paste0(substr(out[dloc[1]],1,2*dloc[2]-1),
+                           cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                           substr(out[dloc[1]],2*dloc[2]+1,11))
+    }else if(ploc[2]<dloc[2]){
+      out[ploc[1]] = paste0(substr(out[ploc[1]],1 ,2*ploc[2]-1),
+                            red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            substr(out[ploc[1]], 2*ploc[2]+1, 2*dloc[2]-1),
+                            cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            substr(out[dloc[1]],2*dloc[2]+1,11))
+    }else if(ploc[2]>dloc[2]){
+      out[ploc[1]] = paste0(substr(out[dloc[1]],1 ,2*dloc[2]-1),
+                            cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            substr(out[dloc[1]], 2*dloc[2]+1, 2*ploc[2]-1),
+                            red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            substr(out[ploc[1]],2*ploc[2]+1,11))
+    }
   }else{
     loc <- loc.indx(state[4])
     out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
@@ -33,7 +50,7 @@ render <- function(state){
   write(out,stdout())
   write("+---------+",stdout())
 }
-render(c(1,2,2,3))
+render(c(1,2,3,4))
 #--------------------------------
 encode <- function(s){
   # encode the state(a,b,c,d) where a,b,c can have values from 1 to 5 and d can have values
