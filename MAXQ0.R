@@ -1,5 +1,7 @@
-V <- matrix(runif(10*500),10,500)
-V <- matrix(0,10,500)
+library(nnet)
+
+V <- matrix(runif(10*500,-.01,.01),10,500)
+#V <- matrix(0,10,500)
 
 Q <-list()
 for(i in 1:10){
@@ -7,7 +9,8 @@ for(i in 1:10){
 }
 C <-list()
 for(i in 1:10){
-  C[[i]] <- matrix(0,500,10)
+  #C[[i]] <- matrix(0,500,10)
+  C[[i]] <- matrix(runif(10*500,.01,.01), 500, 10)
 }
 alpha <- .01
 DF <- .9
@@ -41,7 +44,7 @@ EvaluateMaxNode <- function(i, s, V, C){
       a <- out[[2]]
       V[j,encode(s)] <- out[[1]]
     }
-    b <- actions[which.max(V[actions,s]+C[[i]][encode(s),actions])]
+    b <- actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])]
     return(list(V[b,encode(s)], b, V, C))
   }
 }
@@ -49,7 +52,7 @@ EvaluateMaxNode <- function(i, s, V, C){
 Policy <- function(i,s,V,C){
   actions <- A.space(i)
   if(runif(1) < .1){return(sample(actions,1))} # epsilon greedy
-  return(actions[which.max(V[actions,s]+C[[i]][encode(s),actions])])
+  return(actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])])
 }
 #---------------------------------------------------
 MAXQ.0.learn <- function(i, s, V, C){
@@ -76,14 +79,29 @@ MAXQ.0.learn <- function(i, s, V, C){
      C[[i]][encode(s),a] <- (1-alpha) * C[[i]][encode(s),a] + alpha * (DF^N) * estim
      count <- count + N
      s <- ss
-     }
+  }
+  render(s)
+  #break()
   return(list(count,s, V, C))
  }
 }
 #---------------------------------------------
 
-s0 <- c(3,4,2,3)
+s0 <- c(2,2,2,4)
 render(s0)
-#o <- MAXQ.0.learn(7,s0, V, C)
- o <- EvaluateMaxNode(7,s0,V,C)
+#o <- MAXQ.0.learn(8,s0, V, C)
+#o <- EvaluateMaxNode(7,s0,V,C)
 # debug(MAXQ.0.learn)
+#--------------------------------------------------
+
+MAXQ0.test <- function(s0, V, C){
+  s <- s0
+  for(i in 1:100){
+    render(s)
+    Sys.sleep(0.1)
+    actions <- A.space(s)
+    a <- actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])]
+    o <- step(s,a)
+    s <- o[[1]]
+  }
+}
