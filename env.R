@@ -18,16 +18,22 @@ render <- function(state){
            "|Y| : |B: |")
   substr(out[state[1]],2*state[2],2*state[2])='#'
   if(state[3]!=5){
-    loc <- loc.indx(state[3])
+    ploc <- loc.indx(state[3])
+    dloc <- loc.indx(state[4])
     out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
                          red(substr(out[loc[1]],2*loc[2],2*loc[2])),
+                         substr(out[loc[1]],2*loc[2]+1,11))
+  }else{
+    loc <- loc.indx(state[4])
+    out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
+                         cyan(substr(out[loc[1]],2*loc[2],2*loc[2])),
                          substr(out[loc[1]],2*loc[2]+1,11))
   }
   write("+---------+",stdout())
   write(out,stdout())
   write("+---------+",stdout())
 }
-render(c(1,2,1,1))
+render(c(1,2,2,3))
 #--------------------------------
 encode <- function(s){
   # encode the state(a,b,c,d) where a,b,c can have values from 1 to 5 and d can have values
