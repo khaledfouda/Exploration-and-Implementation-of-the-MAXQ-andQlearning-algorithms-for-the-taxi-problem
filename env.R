@@ -46,8 +46,8 @@ decode <- function(i){
   i <- i%/%5
   return(c(i+1,b+1,c+1,d+1))
 }
-encode(c(3,3,3,3))
-decode(250)
+encode(decode(120))
+
 
 #-----------------------------
 loc.indx <- function(i){
@@ -73,7 +73,7 @@ hitting.wallQ <- function(r,c,a){
   return(FALSE)
 }
 #------------------------------
-step(state,action){
+step <- function(state,action){
   # state is a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
   # action is an integer from 1 to 10
   # return a list of the reward and next state
