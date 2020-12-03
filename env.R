@@ -4,7 +4,7 @@ library(crayon)
 #   1|R: | : :G|1
 #   2| : | : : |2
 #   3| : : : : |3
-#   4| | : | : |4
+#   4| | :#| : |4
 #   5|Y| : |B: |5
 #    +---------+
 #     1 2 3 4 5 
@@ -22,28 +22,28 @@ render <- function(state){
     dloc <- loc.indx(state[4])
     if(ploc[1]!= dloc[1]){
       out[ploc[1]] = paste0(substr(out[ploc[1]],1,2*ploc[2]-1),
-                           red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                           green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
                            substr(out[ploc[1]],2*ploc[2]+1,11))
       out[dloc[1]] = paste0(substr(out[dloc[1]],1,2*dloc[2]-1),
-                           cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                           red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
                            substr(out[dloc[1]],2*dloc[2]+1,11))
     }else if(ploc[2]<dloc[2]){
       out[ploc[1]] = paste0(substr(out[ploc[1]],1 ,2*ploc[2]-1),
-                            red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
                             substr(out[ploc[1]], 2*ploc[2]+1, 2*dloc[2]-1),
-                            cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
                             substr(out[dloc[1]],2*dloc[2]+1,11))
     }else if(ploc[2]>dloc[2]){
       out[ploc[1]] = paste0(substr(out[dloc[1]],1 ,2*dloc[2]-1),
-                            cyan(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
                             substr(out[dloc[1]], 2*dloc[2]+1, 2*ploc[2]-1),
-                            red(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
                             substr(out[ploc[1]],2*ploc[2]+1,11))
     }
   }else{
     loc <- loc.indx(state[4])
     out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
-                         cyan(substr(out[loc[1]],2*loc[2],2*loc[2])),
+                         red(substr(out[loc[1]],2*loc[2],2*loc[2])),
                          substr(out[loc[1]],2*loc[2]+1,11))
   }
   write("+---------+",stdout())
@@ -70,8 +70,6 @@ decode <- function(i){
   return(c(i+1,b+1,c+1,d+1))
 }
 encode(decode(120))
-
-
 #-----------------------------
 loc.indx <- function(i){
   # takes a number between 1 and 4 representing (R,G,Y,B) and returns

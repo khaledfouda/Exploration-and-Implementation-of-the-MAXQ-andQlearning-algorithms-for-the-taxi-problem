@@ -1,2 +1,11 @@
 
 MAXQ0 - Copy.R
+*.xml
+*.out
+*.gz
+*.log
+*.bib
+*.bcf
+*.aux
+out
+data
