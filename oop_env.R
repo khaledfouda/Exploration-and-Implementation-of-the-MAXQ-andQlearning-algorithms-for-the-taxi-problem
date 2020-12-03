@@ -1,0 +1,139 @@
+library(proto)
+
+taxi.env <- proto(expr={
+  s = NA
+  a = NA
+  ss = NA
+  r = NA
+  render = NA
+  step = NA
+  hitting.wallQ = NA
+  encode = NA
+  decode = NA
+  loc.indx = NA
+  
+})
+
+taxi.env$render <- function(.){
+  out <- c("|R: | : :G|",
+           "| : | : : |",
+           "| : : : : |",
+           "| | : | : |",
+           "|Y| : |B: |")
+  substr(out[.$s[1]],2*.$s[2],2*.$s[2])='#'
+  if(.$s[3]!=5){
+    ploc <- .$loc.indx(.$s[3])
+    dloc <- .$loc.indx(.$s[4])
+    if(ploc[1]!= dloc[1]){
+      out[ploc[1]] = paste0(substr(out[ploc[1]],1,2*ploc[2]-1),
+                            green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            substr(out[ploc[1]],2*ploc[2]+1,11))
+      out[dloc[1]] = paste0(substr(out[dloc[1]],1,2*dloc[2]-1),
+                            red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            substr(out[dloc[1]],2*dloc[2]+1,11))
+    }else if(ploc[2]<dloc[2]){
+      out[ploc[1]] = paste0(substr(out[ploc[1]],1 ,2*ploc[2]-1),
+                            green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            substr(out[ploc[1]], 2*ploc[2]+1, 2*dloc[2]-1),
+                            red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            substr(out[dloc[1]],2*dloc[2]+1,11))
+    }else if(ploc[2]>dloc[2]){
+      out[ploc[1]] = paste0(substr(out[dloc[1]],1 ,2*dloc[2]-1),
+                            red(substr(out[dloc[1]],2*dloc[2],2*dloc[2])),
+                            substr(out[dloc[1]], 2*dloc[2]+1, 2*ploc[2]-1),
+                            green(substr(out[ploc[1]],2*ploc[2],2*ploc[2])),
+                            substr(out[ploc[1]],2*ploc[2]+1,11))
+    }
+  }else{
+    loc <- .$loc.indx(.$s[4])
+    out[loc[1]] = paste0(substr(out[loc[1]],1,2*loc[2]-1),
+                         red(substr(out[loc[1]],2*loc[2],2*loc[2])),
+                         substr(out[loc[1]],2*loc[2]+1,11))
+  }
+  write("+---------+",stdout())
+  write(out,stdout())
+  write("+---------+",stdout())
+}
+
+taxi.env$step <- function(.){
+  .$ss <- .$s
+  .$r <- -1
+  # .$s is a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
+  # .$a is an integer from 1 to 10
+  # return a list of the reward and next .$s
+  # a next .$s of c(0,0,0,0) means that he successfully dropped off the passenger
+  # and the episode is over.
+  if(.$a==6){
+    # if successfully dropping-off the passenger
+    if(.$s[3]==5 && all(.$loc.indx(.$s[4])==.$s[1:2])){
+      .$ss <- c(0,0,0,0)
+      .$r <- 20
+    }else {.$r <- -10}
+    #..........
+  }else if(.$a==5){
+    # if successfully picking up the passenger
+    if(.$s[3]!=5 && all(.$loc.indx(.$s[3])==.$s[1:2])){
+      .$ss[3]=5
+      .$r = 10
+    }else {.$r <- -10}
+    #..........#North
+  }else if(.$a==1 && .$hitting.wallQ()==FALSE){.$ss[1]=.$ss[1]-1
+    #..........#South
+  }else if(.$a==2 && .$hitting.wallQ()==FALSE){.$ss[1]=.$ss[1]+1
+  #................#East
+  }else if(.$a==3 && .$hitting.wallQ()==FALSE){.$ss[2]=.$ss[2]+1
+  #...............#west
+  }else if(.$a==4 && .$hitting.wallQ()==FALSE){.$ss[2]=.$ss[2]-1}
+}
+
+taxi.env$hitting.wallQ <- function(.){
+  # true if the action would result in hitting a wall
+  if( (.$a==1 && .$s[1]==1) || (.$a==2 && .$s[1]==5)){return(TRUE)
+  }else if (.$a==3){
+    if(.$s[2]==5){return(TRUE)}
+    if(((.$s[2]==1||.$s[2]==3)&&(.$s[1]==5||.$s[1]==4))||(.$s[2]==2&&(.$s[1]==1||.$s[1]==2))){return(TRUE)}
+  }else if(.$a==4){
+    if(.$s[2]==1){return(TRUE)}
+    if(((.$s[2]==2||.$s[2]==4)&&(.$s[1]==5||.$s[1]==4))||(.$s[2]==3&&(.$s[1]==2||.$s[1]==1))){return(TRUE)}
+  }
+  return(FALSE)
+}
+taxi.env$encode <- function(.,s){
+  # encode the state(a,b,c,d) where a,b,c can have values from 1 to 5 and d can have values
+  # from 1 to 4. 
+  # then the encoded variable can have values between 1 and 500
+  s = s-1
+  return(4*(5*(5*s[1]+s[2])+s[3])+s[4]+1)
+}
+taxi.env$decode <- function(.,i){
+  # the inverse of encode()
+  i <- i-1
+  d <- i%%4
+  i <- i %/% 4
+  c <- i%%5
+  i <- i%/%5
+  b <- i%%5
+  i <- i%/%5
+  return(c(i+1,b+1,c+1,d+1))
+}
+taxi.env$loc.indx <- function(.,i){
+  # takes a number between 1 and 4 representing (R,G,Y,B) and returns
+  # the equivalent (row,col) location
+  if(i==1){return(c(1,1))
+  }else if(i==2){return(c(1,5))
+  }else if(i==3){return(c(5,1))
+  }else if(i==4){return(c(5,4))}
+  return(c(0,0)) # index other than 1 to 4
+}
+
+
+#-------------------------------------------
+t <- taxi.env$proto()
+t$s = c(4,3,2,3)
+te$loc.indx(2)
+t$render()
+t$a=1
+t$step()
+t$s = t$ss
+t$decode(i=11)
+t$ss

@@ -57,10 +57,11 @@ encode <- function(s){
   # from 1 to 4. 
   # then the encoded variable can have values between 1 and 500
   s = s-1
-  return(4*(5*(5*s[1]+s[2])+s[2])+s[4])
+  return(4*(5*(5*s[1]+s[2])+s[3])+s[4]+1)
 }
 decode <- function(i){
   # the inverse of encode()
+  i <- i-1
   d <- i%%4
   i <- i %/% 4
   c <- i%%5
@@ -83,8 +84,10 @@ loc.indx <- function(i){
 #------------------------------
 hitting.wallQ <- function(r,c,a){
   # true if the action would result in hitting a wall
-  if( (a==1 && r==5) || (a==2 && r==1)){return(TRUE)
+  # hitting horizontal edges
+  if( (a==1 && r==1) || (a==2 && r==5)){return(TRUE)
   }else if (a==3){
+    # vertical edge
     if(c==5){return(TRUE)}
     if(((c==1||c==3)&&(r==5||r==4))||(c==2&&(r==1||r==2))){return(TRUE)}
   }else if(a==4){
@@ -110,22 +113,22 @@ step <- function(state,action){
     # if successfully picking up the passenger
     if(state[3]!=5 && all(loc.indx(state[3])==state[1:2])){
       state[3]=5
-      return(list(state,0))
+      return(list(state,10))
     }else {return(list(state,-10))}
   #..........
-  }else if(action==1){
-    if(hitting.wallQ(state[1],state[2],action)==FALSE){state[1]=state[1]+1}
-    return(list(state,-1))
-  #..........
-  }else if(action==2){
+  }else if(action==1){ # North
     if(hitting.wallQ(state[1],state[2],action)==FALSE){state[1]=state[1]-1}
     return(list(state,-1))
+  #..........
+  }else if(action==2){ # south
+    if(hitting.wallQ(state[1],state[2],action)==FALSE){state[1]=state[1]+1}
+    return(list(state,-1))
   #..............
-  }else if(action==3){
+  }else if(action==3){ # east
     if(hitting.wallQ(state[1],state[2],action)==FALSE){state[2]=state[2]+1}
     return(list(state,-1))
   #.................
-  }else if(action==4){
+  }else if(action==4){ # west
     if(hitting.wallQ(state[1],state[2],action)==FALSE){state[2]=state[2]-1}
     return(list(state,-1))
   }

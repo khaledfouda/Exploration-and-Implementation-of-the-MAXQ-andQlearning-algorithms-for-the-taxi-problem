@@ -31,6 +31,31 @@ Action.space <- function(i){
   }else if(i==9){return(c(6,10:13))
   }else {return(1:4)} # == else if(i is in 10:13)
 }
+half.greedy.Action.space <- function(i,s){
+  # This version is stricter where the action space depends on the state as well as the
+  # subtask.
+  # expects only i from 7 to 13. ie, composite actions [subtasks]
+  if(i==7){
+    if(s[3]!=5){return(c(8))
+    }else {return(c(9))}
+    
+  }else if(i==8){
+    if(all(loc.indx(s[3])==s[1:2])){return(c(5))
+    }else if(s[[3]]==1){return(c(10))
+    }else if(s[[3]]==2){return(c(11))
+    }else if(s[[3]]==3){return(c(12))
+    }else if(s[[3]]==4){return(c(13))}
+
+  }else if(i==9){
+    if(all(loc.indx(s[4])==s[1:2])){return(c(6))
+    }else if(s[[4]]==1){return(c(10))
+    }else if(s[[4]]==2){return(c(11))
+    }else if(s[[4]]==3){return(c(12))
+    }else if(s[[4]]==4){return(c(13))}
+  
+  }else {return(1:4)} # == else if(i is in 10:13)
+}
+
 #---------------------------------------------------
 EvaluateMaxNode <- function(i, s, V, C){
   if(any(i==1:6)){ # if i is a primitive max node
@@ -38,12 +63,14 @@ EvaluateMaxNode <- function(i, s, V, C){
     return(list(V, C))
   }else{ # if i is a composite max node: return max(in a) of Q[i,s,a]=V[a,s]+C[i,s,a]
     actions <- Action.space(i)
+    #actions <- half.greedy.Action.space(i,s)
     for(a in actions){
       out <- EvaluateMaxNode(a, s, V, C)
       V <- out[[1]]
       C <- out[[2]]
     }
-    V[i,s] <- max(V[actions,encode(s)]+C[[i]][encode(s),actions])
+    #print(c(encode(s),i,actions))
+    V[i,encode(s)] <- max(V[actions,encode(s)]+C[[i]][encode(s),actions])
     return(list(V, C))
   }
 }
@@ -51,27 +78,29 @@ EvaluateMaxNode <- function(i, s, V, C){
 Policy <- function(i,s,V,C){
   # Epsilon-greedy policy
   actions <- Action.space(i)
-  if(runif(1) < .1){return(sample(actions,1))} # epsilon greedy
+  #actions <- half.greedy.Action.space(i,s)
+  if(runif(1) < .001){return(sample(actions,1))} # epsilon greedy
   return(actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])])
 }
 #---------------------------------------------------
-MAXQ0.learn <- function(i, s, V, C){
+MAXQ0.learn <- function(i, s, V, C, gain){
   # if it's primitive
   if(i <=6){
     sr <- step(s,i)
+    gain <- gain + sr[[2]]
     V[i,encode(s)] <- (1-alpha) * V[i,encode(s)] + alpha * sr[[2]]
-    return(list(1,sr[[1]], V, C))
+    return(list(1,sr[[1]], V, C, gain))
   }else{
   count = 0
-  while(!is.terminal(i,s)){
+  while(!is.terminal(i,s) && gain > -50){
      a <- Policy(i,s,V,C) 
-    #a <- sample(Action.space(i),1)
-     out <- MAXQ0.learn(a,s,V,C)
+    out <- MAXQ0.learn(a,s,V,C, gain)
      N <- out[[1]]
      ss <- out[[2]]
      V <- out[[3]]
      C <- out[[4]]
-     if(all(ss==c(0,0,0,0))) {return(list(count,ss,V,C))}
+     gain <- out[[5]]
+     if(all(ss==c(0,0,0,0))) {return(list(count,ss,V,C,gain))}
      out <- EvaluateMaxNode(i,ss,V,C)
      V <- out[[1]]
      C <- out[[2]]
@@ -79,46 +108,39 @@ MAXQ0.learn <- function(i, s, V, C){
      count <- count + N
      s <- ss
   }
-  render(s)
-  return(list(count,s, V, C))
+  if(gain<=-50){gain=-200}
+  #render(s)
+  return(list(count,s, V, C, gain))
  }
 }
 #---------------------------------------------
-
-s0 <- c(3,4,2,4)
-render(s0)
-#o <- MAXQ0.learn(7,s0, V, C)
-#o <- EvaluateMaxNode(7,s0,V,C)
-# debug(MAXQ0.learn)
-#--------------------------------------------------
-
-MAXQ0.test <- function(i, s0, V, C){
-  s <- s0
-  for(i in 1:100){
-    render(s)
-    Sys.sleep(0.1)
-    actions <- Action.space(i)
-    a <- actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])]
-    o <- step(s,a)
-    s <- o[[1]]
+Estimate.V.C <- function(n=100, Vestim, Cestim){
+  s0s <- list()
+  set.seed(12)
+  rewards <- c()
+  for(i in 1:n){
+    # for each run generate a random state.
+    s0 <- c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1))
+    #s0 <- c(3,2,4,1)
+    # print(s0)
+    o <- MAXQ0.learn(7, s0, Vestim, Cestim,0)
+    Vestim <- o[[3]]
+    Cestim <- o[[4]]
+    rewards <- c(rewards, o[[5]])
   }
+  return(list(Vestim, Cestim, rewards,s0s))
 }
-#MAXQ0.test(7,s0,V,C)
 
+o <- Estimate.V.C(500, Vestim, Cestim)
+Vestim <- o[[1]]
+Cestim <- o[[2]]
+rewards <- o[[3]]
 
-MAXQ0.test <- function(i,s0){
-  if(any(i==1:6)){ # if i is a primitive max node
-    return(list(V[i,encode(s)], i, V, C))
-  }else{ # if i is a composite max node: return max(in a) of Q[i,s,a]=V[a,s]+C[i,s,a]
-    actions <- Action.space(i)
-    for(j in actions){
-      out <- EvaluateMaxNode(j, s, V, C)
-      C <- out[[4]]
-      V <- out[[3]]
-      a <- out[[2]]
-      V[j,encode(s)] <- out[[1]]
-    }
-    b <- actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])]
-    return(list(V[b,encode(s)], b, V, C))
-  }
-}
+#debug(MAXQ0.learn)
+
+plot(1:length(rewards),rewards)
+max(rewards)
+min(rewards)
+#s0 = c(4,1,5,3)
+o <-MAXQ0.learn(7,s0,Vestim,Cestim,0)
+o[[5]]
