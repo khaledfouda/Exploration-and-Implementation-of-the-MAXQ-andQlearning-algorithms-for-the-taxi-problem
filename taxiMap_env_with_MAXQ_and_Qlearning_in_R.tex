@@ -1,7 +1,7 @@
 
 \documentclass[twoside,twocolumn]{article}
 \usepackage{datetime}
-\usepackage{blindtext} % Package to generate dummy text throughout this template 
+\usepackage{blindtext,qtree,amsmath} % Package to generate dummy text throughout this template 
 \usepackage{graphicx,floatrow}
 
 \usepackage[sc]{mathpazo} % Use the Palatino font
@@ -119,8 +119,102 @@ I have implemented the following functions for the environment:\\
  
 %-------------------------------------------------
 \section{MAXQ method}
+In our problem, the agent's goal is not only reaching the destination but is to also pick up the customer first. From this we define the following sequence of subtasks needed to reach the goal. \\
+
+\textbf{Reach the customer $\Rightarrow$ Pick them up $\Rightarrow$ Drive to the destination $\Rightarrow$ drop them off} \\
+
+MAXQ algorithm is one  of the hierarchical reinforcement learning methods which guarantees ultimate goal satisfaction only if a sequence of sub-goals was satisfied. \\
+One the other hand, the algorithm's performance depends on how the structure of hierarchy is defined. MAXQ0 provides no way of learning that structure.\\
+In MAXQ there are two types of actions: a primitive action which is the action that change the state of the environment and composite action which is a sub-task. For our Implementations, we defined the following actions:
+\begin{itemize}
+\item Primitive actions:
+\begin{enumerate}
+  \item Move one step north (N)
+  \item Move one step south (S)
+  \item Move one step east (E)
+  \item Move one step south (W)
+  \item pick-up the passenger
+  \item drop-off the passenger
+\end{enumerate}
+\item subtasks actions:
+\begin{enumerate}
+  \setcounter{enumi}{6}
+  \item Root - explained below -
+  \item reach the customer and pick them up (GET)
+  \item drive to the destination and drop them off (PUT)
+  \item drive to the customer (Navigate\_C)  
+  \item drive to the destination (Navigate\_D)
+\end{enumerate}
+\end{itemize}
+and Their hierarchical structure is defined as follows:
+\begin{center}
+\Tree[.Root 
+		[.GET  [.Pick ] [.Navigate\_C N S E W ] ]
+        [.PUT  [.Navigate\_D N S E W ] [.Drop ] ] ]
+
+\end{center} 
+Where - starting at root - the agent has to recursively go down the graph satisfying each composite action. The root is satisfied if both get and put are satisfied and hence the episode ends. At each subtask i, the agent needs to repeatedly choose an action until the task is completed and hence we go back to the parent subtask. \\
+For each action, a list of Terminal states is defined. If an action is at a terminal state, it no longer needs move down the tree and it returns back to it's parent subtask. For example, at Navigate\_C, it repeatedly choose one of the four actions [N,S,E,W] until it reaches the location of the customer. When that happens, we say that Navigate\_C reached a terminal state and it stops executing it's subtask and it reports back to it's parent "GET" who either choose an action "Pick" or "Navigate\_C" or if it's at a terminal state, it reports back to root and so on. The only terminal state for root is when both "GET" and "PUT" reached their terminal states and the episode is over.  
+
+\subsection*{value function Estimates}
+
+Let $(i,s)$ define the state of the environment at time $t$ where $i$ is the subtask running. Let also $a$ be the action (sub-subtask) taken by subtask i at time t.
+Define 
+$$ C^\pi(i,s,a) = (1-\alpha)C^\pi(i,s,a) + \gamma^N * V[i,s'] $$
+\[
+    V^\pi(i,s) =
+    \begin{cases}
+        (1-\alpha)*V^\pi(i,s) + \alpha * Reward(s'|s,i) & \text{if i is primitive}\\
+        max_{a\in A(i)} V^\pi(a,s) + C^\pi(i,s,a) & \text{if i is a subtask}
+    \end{cases}
+\]\\
+
+where $\alpha$ is the learning rate, $\gamma$ is the discounting factor, $N$ is the number of times the subtask i  executed actions before reaching the terminal state, and $A(i)$ is the set of available actions to  subtask i. \\
+
+\subsection*{Policy}
+\subsection*{Implementation}
 
 
+sefsef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
+sefsef\\
+sefes\\
+sfseef\
+sfesef\\
 %------------------------------------------------
 \section{Qlearning method}
 \section{Results}
