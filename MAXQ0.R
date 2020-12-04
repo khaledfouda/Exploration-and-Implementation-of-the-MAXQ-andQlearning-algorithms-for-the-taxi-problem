@@ -1,59 +1,52 @@
 library(nnet)
 
 #V <- matrix(runif(13*500,-.01,.01),13,500)
-V <- matrix(0,13,500)
+V <- matrix(0,11,500)
 C <-list()
-for(i in 1:13){
-  C[[i]] <- matrix(0,500,13)
+for(i in 1:11){
+  C[[i]] <- matrix(0,500,11)
   #C[[i]] <- matrix(runif(10*500,-.01,.01), 500, 10)
 }
-alpha <- .1
-DF <- .8
+alpha <- .2
+DF <- 1
+epsilon <- .01
 #--------------------------------------
 is.terminal <- function(i,s){
   # returns TRUE if s is an end state for the subtask i.
   # whenver in task 7(root), 9(dropoff), or 10(navig with a parent 9), terminate
   # only of the episode is done
   if(all(s==c(0,0,0,0))){return(TRUE)
-  }else if(i==8 && s[3]==5){return(TRUE) # successfully picked up the passenger
-  }else if(i==9 && s[3]!=5){return(TRUE) # attempting to drop off when passenger is not on board
+  }else if(any(i==c(8,10)) && s[3]==5){return(TRUE) # successfully picked up the passenger
+  }else if(any(i==c(9,11)) && s[3]!=5){return(TRUE) # attempting to drop off when passenger is not on board
   }else if(any(i==1:6)){return(TRUE) # any primitive action is excuted once
-  }else if(i==10 && s[1:2]==loc.indx(1)){return(TRUE)
-  }else if(i==11 && s[1:2]==loc.indx(2)){return(TRUE)
-  }else if(i==12 && s[1:2]==loc.indx(3)){return(TRUE)
-  }else if(i==13 && s[1:2]==loc.indx(4)){return(TRUE)
+  }else if(i==10 && all(s[1:2]==loc.indx(s[3]))){return(TRUE)#taxi ready to pick up
+  }else if(i==11 && all(s[1:2]==loc.indx(s[4]))){return(TRUE)
   }else {return(FALSE)}
 }
-Action.space <- function(i){
+Action.space. <- function(i){
   # expects only i from 7 to 13. ie, composite actions [subtasks]
   if(i==7){return(c(8,9))
-  }else if(i==8){return(c(5,10:13))
-  }else if(i==9){return(c(6,10:13))
-  }else {return(1:4)} # == else if(i is in 10:13)
+  }else if(i==8){return(c(5,10))
+  }else if(i==9){return(c(6,11))
+  }else if(i==10 || i==11){return(1:4)}
 }
-half.greedy.Action.space <- function(i,s){
-  # This version is stricter where the action space depends on the state as well as the
-  # subtask.
+Action.space <- function(i,s){
   # expects only i from 7 to 13. ie, composite actions [subtasks]
   if(i==7){
-    if(s[3]!=5){return(c(8))
-    }else {return(c(9))}
-    
+    if(s[3]=='5'){return(c(9))}else{return(c(8))}
   }else if(i==8){
-    if(all(loc.indx(s[3])==s[1:2])){return(c(5))
-    }else if(s[[3]]==1){return(c(10))
-    }else if(s[[3]]==2){return(c(11))
-    }else if(s[[3]]==3){return(c(12))
-    }else if(s[[3]]==4){return(c(13))}
-
+    if(all(loc.indx(s[3])==s[1:2]) ){return(c(5))
+    }else if(s[3]==1){return(c(10))
+    }else if(s[3]==2){return(c(11))
+    }else if(s[3]==3){return(c(12))
+    }else if(s[3]==4){return(c(13))}
   }else if(i==9){
-    if(all(loc.indx(s[4])==s[1:2])){return(c(6))
-    }else if(s[[4]]==1){return(c(10))
-    }else if(s[[4]]==2){return(c(11))
-    }else if(s[[4]]==3){return(c(12))
-    }else if(s[[4]]==4){return(c(13))}
-  
-  }else {return(1:4)} # == else if(i is in 10:13)
+    if(all(loc.indx(s[4])==s[1:2]) ){return(c(6))
+    }else if(s[4]==1){return(c(10))
+    }else if(s[4]==2){return(c(11))
+    }else if(s[4]==3){return(c(12))
+    }else if(s[4]==4){return(c(13))}}
+  return(1:4) # == else if(i is in 10:13)
 }
 
 #---------------------------------------------------
@@ -62,7 +55,7 @@ EvaluateMaxNode <- function(i, s, V, C){
     # no update required as it's already updated in the main function
     return(list(V, C))
   }else{ # if i is a composite max node: return max(in a) of Q[i,s,a]=V[a,s]+C[i,s,a]
-    actions <- Action.space(i)
+    actions <- Action.space(i,s)
     #actions <- half.greedy.Action.space(i,s)
     for(a in actions){
       out <- EvaluateMaxNode(a, s, V, C)
@@ -77,7 +70,7 @@ EvaluateMaxNode <- function(i, s, V, C){
 #---------------------------------------------------
 Policy <- function(i,s,V,C){
   # Epsilon-greedy policy
-  actions <- Action.space(i)
+  actions <- Action.space(i,s)
   #actions <- half.greedy.Action.space(i,s)
   if(runif(1) < .001){return(sample(actions,1))} # epsilon greedy
   return(actions[nnet::which.is.max(V[actions,encode(s)]+C[[i]][encode(s),actions])])
@@ -92,7 +85,7 @@ MAXQ0.learn <- function(i, s, V, C, gain){
     return(list(1,sr[[1]], V, C, gain))
   }else{
   count = 0
-  while(!is.terminal(i,s) && gain > -50){
+  while(!is.terminal(i,s) && gain > -1000){
      a <- Policy(i,s,V,C) 
     out <- MAXQ0.learn(a,s,V,C, gain)
      N <- out[[1]]
@@ -116,7 +109,7 @@ MAXQ0.learn <- function(i, s, V, C, gain){
 #---------------------------------------------
 Estimate.V.C <- function(n=100, Vestim, Cestim){
   s0s <- list()
-  set.seed(12)
+  #set.seed(12)
   rewards <- c()
   for(i in 1:n){
     # for each run generate a random state.
@@ -131,7 +124,7 @@ Estimate.V.C <- function(n=100, Vestim, Cestim){
   return(list(Vestim, Cestim, rewards,s0s))
 }
 
-o <- Estimate.V.C(500, Vestim, Cestim)
+o <- Estimate.V.C(10, V, C)
 Vestim <- o[[1]]
 Cestim <- o[[2]]
 rewards <- o[[3]]
@@ -142,5 +135,5 @@ plot(1:length(rewards),rewards)
 max(rewards)
 min(rewards)
 #s0 = c(4,1,5,3)
-o <-MAXQ0.learn(7,s0,Vestim,Cestim,0)
+o <-MAXQ0.learn(7,s0,V,C,0)
 o[[5]]

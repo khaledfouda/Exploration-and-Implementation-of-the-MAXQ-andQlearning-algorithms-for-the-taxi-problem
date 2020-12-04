@@ -1,16 +1,19 @@
 library(proto)
-
+library(crayon)
 taxi.env <- proto(expr={
+  # avaiable variables
   s = NA
-  a = NA
   ss = NA
   r = NA
+  # available functions (defined later below)
   render = NA
   step = NA
   hitting.wallQ = NA
   encode = NA
   decode = NA
   loc.indx = NA
+  set.random.state = NA
+  set.seed = NA
   
 })
 
@@ -55,44 +58,45 @@ taxi.env$render <- function(.){
   write("+---------+",stdout())
 }
 
-taxi.env$step <- function(.){
+taxi.env$step <- function(.,a){
   .$ss <- .$s
   .$r <- -1
   # .$s is a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
-  # .$a is an integer from 1 to 10
+  # a is an integer from 1 to 10
   # return a list of the reward and next .$s
   # a next .$s of c(0,0,0,0) means that he successfully dropped off the passenger
   # and the episode is over.
-  if(.$a==6){
+  if(a==6){
     # if successfully dropping-off the passenger
     if(.$s[3]==5 && all(.$loc.indx(.$s[4])==.$s[1:2])){
       .$ss <- c(0,0,0,0)
       .$r <- 20
     }else {.$r <- -10}
     #..........
-  }else if(.$a==5){
+  }else if(a==5){
     # if successfully picking up the passenger
     if(.$s[3]!=5 && all(.$loc.indx(.$s[3])==.$s[1:2])){
       .$ss[3]=5
-      .$r = 10
+      .$r = 0
     }else {.$r <- -10}
     #..........#North
-  }else if(.$a==1 && .$hitting.wallQ()==FALSE){.$ss[1]=.$ss[1]-1
+  }else if(a==1 && .$hitting.wallQ(a)==FALSE){.$ss[1]=.$ss[1]-1
     #..........#South
-  }else if(.$a==2 && .$hitting.wallQ()==FALSE){.$ss[1]=.$ss[1]+1
+  }else if(a==2 && .$hitting.wallQ(a)==FALSE){.$ss[1]=.$ss[1]+1
   #................#East
-  }else if(.$a==3 && .$hitting.wallQ()==FALSE){.$ss[2]=.$ss[2]+1
+  }else if(a==3 && .$hitting.wallQ(a)==FALSE){.$ss[2]=.$ss[2]+1
   #...............#west
-  }else if(.$a==4 && .$hitting.wallQ()==FALSE){.$ss[2]=.$ss[2]-1}
+  }else if(a==4 && .$hitting.wallQ(a)==FALSE){.$ss[2]=.$ss[2]-1}
+  return(.$r)
 }
 
-taxi.env$hitting.wallQ <- function(.){
+taxi.env$hitting.wallQ <- function(.,a){
   # true if the action would result in hitting a wall
-  if( (.$a==1 && .$s[1]==1) || (.$a==2 && .$s[1]==5)){return(TRUE)
-  }else if (.$a==3){
+  if( (a==1 && .$s[1]==1) || (a==2 && .$s[1]==5)){return(TRUE)
+  }else if (a==3){
     if(.$s[2]==5){return(TRUE)}
     if(((.$s[2]==1||.$s[2]==3)&&(.$s[1]==5||.$s[1]==4))||(.$s[2]==2&&(.$s[1]==1||.$s[1]==2))){return(TRUE)}
-  }else if(.$a==4){
+  }else if(a==4){
     if(.$s[2]==1){return(TRUE)}
     if(((.$s[2]==2||.$s[2]==4)&&(.$s[1]==5||.$s[1]==4))||(.$s[2]==3&&(.$s[1]==2||.$s[1]==1))){return(TRUE)}
   }
@@ -125,15 +129,14 @@ taxi.env$loc.indx <- function(.,i){
   }else if(i==4){return(c(5,4))}
   return(c(0,0)) # index other than 1 to 4
 }
-
-
-#-------------------------------------------
-t <- taxi.env$proto()
-t$s = c(4,3,2,3)
-te$loc.indx(2)
-t$render()
-t$a=1
-t$step()
-t$s = t$ss
-t$decode(i=11)
-t$ss
+taxi.env$set.random.state <- function(.){
+  .$s <- c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1))
+}
+taxi.env$set.seed <- function(.,seed){set.seed(seed)}
+taxi.env$update <- function(.){.$s <- .$ss}
+#------------------------------------------------
+# Usage :
+t <- as.proto(taxi.env)
+t$set.random.state(); t$render()
+t$step(a=1); t$update(); t$render()
+t$s <- t$decode(150); t$render()
