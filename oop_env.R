@@ -1,5 +1,18 @@
 library(proto)
 library(crayon)
+
+#     1 2 3 4 5
+#    +---------+
+#   1|R: | : :G|1
+#   2| : | : : |2
+#   3| : : : : |3
+#   4| | :#| : |4
+#   5|Y| : |B: |5
+#    +---------+
+#     1 2 3 4 5 
+
+
+
 taxi.env <- proto(expr={
   # avaiable variables
   s = NA
