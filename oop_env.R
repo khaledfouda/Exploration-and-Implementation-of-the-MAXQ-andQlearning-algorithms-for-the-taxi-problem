@@ -149,7 +149,7 @@ taxi.env$set.seed <- function(.,seed){set.seed(seed)}
 taxi.env$update <- function(.){.$s <- .$ss}
 #------------------------------------------------
 # Usage :
-t <- as.proto(taxi.env)
-t$set.random.state(); t$render()
-t$step(a=1); t$update(); t$render()
-t$s <- t$decode(150); t$render()
+# t <- as.proto(taxi.env)
+# t$set.random.state(); t$render()
+# t$step(a=1); t$update(); t$render()
+# t$s <- t$decode(150); t$render()
