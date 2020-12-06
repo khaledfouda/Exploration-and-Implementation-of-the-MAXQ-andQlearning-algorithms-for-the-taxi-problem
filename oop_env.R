@@ -75,9 +75,9 @@ taxi.env$step <- function(.,a){
   .$ss <- .$s
   .$r <- -1
   # .$s is a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
-  # a is an integer from 1 to 10
+  # a is an integer from 1 to 6
   # return a list of the reward and next .$s
-  # a next .$s of c(0,0,0,0) means that he successfully dropped off the passenger
+  # a next s of c(0,0,0,0) means that he successfully dropped off the passenger
   # and the episode is over.
   if(a==6){
     # if successfully dropping-off the passenger

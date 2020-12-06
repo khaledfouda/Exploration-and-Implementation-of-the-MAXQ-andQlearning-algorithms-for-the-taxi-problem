@@ -3,7 +3,8 @@
 \usepackage{datetime}
 \usepackage{blindtext,qtree,amsmath} % Package to generate dummy text throughout this template 
 \usepackage{graphicx,floatrow}
-
+\usepackage{algorithm}
+\usepackage{algorithmic}
 \usepackage[sc]{mathpazo} % Use the Palatino font
 \usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
 \linespread{1.05} % Line spacing - Palatino needs more space between lines
@@ -38,7 +39,7 @@
 \fancyfoot[RO,LE]{\thepage} % Custom footer text
 
 \usepackage{titling} % Customizing the title section
-
+\usepackage{listings}
 \usepackage{hyperref} % For hyperlinks in the PDF
 
 %----------------------------------------------------------------------------------------
@@ -160,61 +161,87 @@ For each action, a list of Terminal states is defined. If an action is at a term
 
 Let $(i,s)$ define the state of the environment at time $t$ where $i$ is the subtask running. Let also $a$ be the action (sub-subtask) taken by subtask i at time t.
 Define 
-$$ C^\pi(i,s,a) = (1-\alpha)C^\pi(i,s,a) + \gamma^N * V[i,s'] $$
+$$ C^\pi(i,s,a) = (1-\alpha)C^\pi(i,s,a) + \alpha*\gamma^N * V[i,s'] $$
 \[
     V^\pi(i,s) =
     \begin{cases}
-        (1-\alpha)*V^\pi(i,s) + \alpha * Reward(s'|s,i) & \text{if i is primitive}\\
-        max_{a\in A(i)} V^\pi(a,s) + C^\pi(i,s,a) & \text{if i is a subtask}
+        (1-\alpha)*V^\pi(i,s) + \alpha * Reward(s'|s,i) &\\ \text{if i is primitive}\\
+        max_{a\in A(i)} V^\pi(a,s) + C^\pi(i,s,a) &\\ \text{if i is a subtask}
     \end{cases}
 \]\\
 
 where $\alpha$ is the learning rate, $\gamma$ is the discounting factor, $N$ is the number of times the subtask i  executed actions before reaching the terminal state, and $A(i)$ is the set of available actions to  subtask i. \\
+$C^\pi$ is only defined for composite actions, i.e, for $i\in (7,8,9,10)$ and it's similar to the usual action value function $Q$ and it it takes into account the value function of the next state produced by a primitive action. the term $\gamma^N$ is adapted from Semi-Markov decision model and it helps prioritizing the actions that leads to smaller number of steps. However, in our experiment, we got better results setting this term 1.\\
+The state value function for the primitive actions is a classic weighted average of rewards and for the composite actions is a maximization of a modified action value function.
+The state value function for the composite actions requires recursive calculations of the subsequent actions chosen. 
+\begin{lstlisting}[language=R]
+EvaluateMaxNode <- function(i, s){
+  # if i is primitive then do nothing
+  if(any(i==1:6)){return()}
+  actions <- Action.space(i)
+  for(a in actions){ 
+	  EvaluateMaxNode(a, s)
+  }
+  V[i,encode(s)] <- max(V[actions,encode(s)] + 
+  C[[i]][encode(s),actions])
+}
+\end{lstlisting}
 
 \subsection*{Policy}
-\subsection*{Implementation}
+
+The policy used is $\epsilon-greedy$. Only composite actions -subtasks- can take subsequent actions and it's the action the maximizes the modified action value function above with probability $1-\epsilon$ and a random action with probability $\epsilon$ with the restriction of belonging to the action space -defined below- of that subtask. 
 
 
-sefsef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
-sefsef\\
-sefes\\
-sfseef\
-sfesef\\
+\subsection*{Action Space}
+The action space for each action is the set of sub-nodes related to that action. Remember that only subtasks have action spaces since states with primitive actions take a pre-determined actions defined by the environment above.
+\begin{lstlisting}[language=R]
+Action.space <- function(.,i){
+  # expects i to be from 7 to 13
+  if(i==7){return(c(8,9))
+  }else if(i==8){return(c(5,10))
+  }else if(i==9){return(c(6,11))
+  }else if(i==10 || i==11){return(1:4)}
+}
+\end{lstlisting}
+
+\subsection*{Terminal States}
+Each subtask -subtree- runs recursively until it hits one of its terminal states. Terminal states do not necessarily represent the completion of that subtask, they can be states where the subtask is not needed at that time step.
+We defined the following terminal states:
+\begin{itemize}
+\item When either the subtask Get or Navigate\_C is active and the customer being already picked up.
+\item When either the subtask Put or Navigate\_D is active and the customer is not yet picked.
+\item When either of the navigation subtasks is active and the taxi has already arrived the destination.
+\item When the episode is over and the customer have made their trip successfully. 
+\end{itemize}
+As for the primitive actions, they are always executed once and report back to their parent-node who then can make choice of whether it execute them again using the defined policy.
+
+\subsection*{Learning Algorithm}
+\begin{algorithm}
+\caption{MAXQ0(node i, state s) }
+\begin{algorithmic}[1]
+\IF {i is a primitive action}
+\STATE execute the pair $(i,s)$ and observe the resulting $(i,s')$
+\STATE  $V(i,s) \leftarrow (1-\alpha)*V(i,s) + \alpha * r$
+\STATE  $return(1)$
+\ELSE
+\STATE $count \leftarrow 0$ 
+\WHILE{(i,s) not a terminal state}
+\STATE choose a according to the policy
+\STATE $N \leftarrow MAXQ0(a,s)$
+\IF {episode is done}
+\STATE $return(count)$
+\ENDIF
+\STATE $EvaluateMaxNode(i,s)$
+\STATE $C(i,s,a) \leftarrow (1-\alpha)C(i,s,a) + \alpha*\gamma^N * V[i,s']$
+\STATE $count \leftarrow count + N$
+\STATE $s \leftarrow s'$
+\ENDWHILE
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+The last function when called with an initial $i=7$-Root- it simulates a full episode from the beginning until the successful drop off of the passenger. For larger scale problems and poorer design of the environment, the while loop might run forever before reaching a terminal state.  
+
+
 %------------------------------------------------
 \section{Qlearning method}
 \section{Results}
