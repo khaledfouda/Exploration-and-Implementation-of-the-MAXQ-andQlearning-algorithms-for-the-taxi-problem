@@ -1,48 +1,45 @@
-library(nnet)
 library(proto)
+source('taxi_env.R')
 
 MAXQ0 <- proto(expr = {
   # Matrices (all are defined later below)
-  V <- NA # holds the estimates for the value functions
-  C <- NA 
+  V <- NA # holds the estimates for the state value functions
+  C <- NA # are action-state value estimates.
   # Variables
-  epsilon <- NA # for the epsilon-greedy policy
-  DF <- NA # the discounted factor
-  alpha <- NA # learning rate 
+  epsilon <- .01 # for the epsilon-greedy policy.
+  DF <- 1 # the discounted factor
+  alpha <- .2 # learning rate 
   gain <- 0 # sum of rewards for a single episode
-  taxi <- as.proto(taxi.env)
+  taxi <- taxi.env$proto()
   # available methods
   add.seed <- NA
-  init <- NA
+  init <- 
   is.terminal <- NA
   Action.space <- NA
   EvaluateMaxNode <- NA
   Policy <- NA
   MAXQ0 <- NA
   Estimate.V.C <- NA
-  get.rands <- NA
 })
 #----------------------------------
 MAXQ0$add.seed <- function(.,seed){set.seed(seed)}
 MAXQ0$init <- function(.,reset.estimates=TRUE, alpha=.2,DF=1,epsilon=.01){
   if(reset.estimates == TRUE){
-    .$V <- matrix(0,11,500)
-    .$C <-list()
-    for(i in 1:11){
-      .$C[[i]] <- matrix(0,500,11)
-    }
+    .$V <- array(0,c(11,500))
+    .$C <- array(0, c(11,500,11))
   }
   .$alpha <- alpha
   .$DF <- DF
   .$gain <- 0
   .$epsilon <- epsilon
-  .$taxi <- as.proto(taxi.env)
+  .$taxi$init()
 }
+
 #--------------------------------------
 MAXQ0$is.terminal <- function(., i, s){
   # returns TRUE if s is an end state for the subtask i.
   # whenver in task 7(root), 9(dropoff), or 10(navig with a parent 9), terminate
-  # only of the episode is done
+  # only if the episode is over.
   if(all(s==c(0,0,0,0))){return(TRUE)
   }else if(any(i==c(8,10)) && s[3]==5){return(TRUE) # successfully picked up the passenger
   }else if(any(i==c(9,11)) && s[3]!=5){return(TRUE) # attempting to drop off when passenger is not on board
@@ -66,28 +63,26 @@ MAXQ0$EvaluateMaxNode <- function(., i, s){
   # if i is a composite max node: return max(in a) of Q[i,s,a]=V[a,s]+C[i,s,a]
   actions <- .$Action.space(i)
   for(a in actions){.$EvaluateMaxNode(a, s)}
-  .$V[i,.$taxi$encode(s)] <- max(.$V[actions,.$taxi$encode(s)]+.$C[[i]][.$taxi$encode(s),actions])
+  .$V[i,.$taxi$encode(s)] <- max(.$V[actions,.$taxi$encode(s)]+.$C[i,.$taxi$encode(s),actions])
 }
 #---------------------------------------------------
 MAXQ0$Policy <- function(.,i,s){
   # Epsilon-greedy policy
   actions <- .$Action.space(i)
   if(runif(1) < .$epsilon){return(sample(actions,1))} # epsilon greedy
-  return(actions[which.max(.$V[actions,.$taxi$encode(s)]+
-                                      .$C[[i]][.$taxi$encode(s),actions])])
+  return(actions[which.max(.$V[actions,.$taxi$encode(s)]+ .$C[i,.$taxi$encode(s),actions])])
 }
 #---------------------------------------------------
 MAXQ0$MAXQ0 <- function(.,i, s){
   # if it's primitive
   .$taxi$s <- s
-  .$taxi$a <- i
   
   if(i <=6){
     r <- .$taxi$step(i)
     .$gain <- .$gain + r
     .$V[i,.$taxi$encode(s)] <- (1-.$alpha) * .$V[i,.$taxi$encode(s)] + .$alpha * r
     return(1)
-  }
+  }else{
 # else if i is a composite action (subtask)
   count = 0
   while(!.$is.terminal(i,s)){
@@ -95,33 +90,40 @@ MAXQ0$MAXQ0 <- function(.,i, s){
      N <- .$MAXQ0(a,s)
      if(all(.$taxi$ss==c(0,0,0,0))) {return(count)} # goal is achieved.
      .$EvaluateMaxNode(i,.$taxi$ss)
-     .$C[[i]][.$taxi$encode(s),a] <- (1-.$alpha) * .$C[[i]][.$taxi$encode(s),a] + 
+     .$C[i,.$taxi$encode(s),a] <- (1-.$alpha) * .$C[i,.$taxi$encode(s),a] + 
        .$alpha * (.$DF^N) * .$V[i,.$taxi$encode(.$taxi$ss)]
      count <- count + N
      s <- .$taxi$ss
      .$taxi$update()
   }
+  if (all(.$taxi$ss == c(-1,-1,-1,-1))){ # this is to avoid the situation when we start 
+    # at root then do navigate destination and hit a terminal state. 
+    .$taxi$ss <- .$taxi$s}
   return(count)
 
-}
+}}
 # #---------------------------------------------
-MAXQ0$Estimate.V.C <- function(., n=100, alpha=.2, DF=1, epsilon=.01, resetV=TRUE){
+MAXQ0$Estimate.V.C <- function(., n=100, alpha=.2, DF=1, epsilon=.01,theseed=12, decay=FALSE, resetV=TRUE){
   # runs n episodes of MAXQ0() using random initial state at each episode
-  # and updating the estimates for value functions and keeping track of the rewards
-  if(resetV==TRUE){.$init(TRUE)}
+  # and updating the estimates for value functions
+  # return a list of returns and steps till termination
+  .$init(resetV)
   rewards <- c()
+  steps <- c()
+  .$add.seed(theseed)
+  .$taxi$add.seed(theseed)
+  # decaying learning rate alpha. default is FALSE
+  if(decay==TRUE){ lr <- alpha * sort(runif(n),decreasing = TRUE)
+  }else { lr <- alpha * rep(1,n) }
+  
   for(i in 1:n){
-    .$init(FALSE,alpha, DF, epsilon)
+    .$init(FALSE,lr[[i]], DF, epsilon)
     # for each run generate a random state.
-    s0 <- c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1))
-    .$MAXQ0(7, s0) # always start from the root subtask
+    .$MAXQ0(7, .$taxi$set.random.state(FALSE)) # always start from the root subtask
     rewards <- c(rewards, .$gain)
-    if(i%%500==0){print(paste0(i," episodes are simulated"))}
+    steps <- c(steps, .$taxi$count)
+    if(i%%400==0){print(paste0(i," episodes are simulated"))}
   }
-  return(rewards)
+  return(list(rewards,steps))
 }
-MAXQ0$get.rands <- function(.){ # returns a random state
-  return(c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1)))
-}
-# 
 #--------------------------------------------------------------

@@ -15,22 +15,27 @@ library(crayon)
 
 taxi.env <- proto(expr={
   # avaiable variables
-  s = NA
-  ss = NA
-  r = NA
+  s = c(-1,-1,-1,-1) #current state, a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
+  ss = c(-1,-1,-1,-1) # next state chosen by step()
+  count = 0 # number of steps from the beginning until reaching the terminal state
   # available functions (defined later below)
-  render = NA
-  step = NA
+  init = NA # resets the preceding variables
+  render = NA 
+  step = NA 
   hitting.wallQ = NA
   encode = NA
   decode = NA
   loc.indx = NA
   set.random.state = NA
-  set.seed = NA
+  add.seed = NA
   
 })
-
-taxi.env$render <- function(.){
+taxi.env$init <- function(.){
+  .$s <- c(-1,-1,-1,-1)
+  .$ss <- c(-1,-1,-1,-1)
+  .$count <- 0
+}
+taxi.env$render <- function(.){ # prints out the current state .$s
   out <- c("|R: | : :G|",
            "| : | : : |",
            "| : : : : |",
@@ -72,13 +77,12 @@ taxi.env$render <- function(.){
 }
 
 taxi.env$step <- function(.,a){
+  # given an action a and using the current state, it maps them to the next state .$ss and a reward (returned)
+  # a is an integer from 1 to 6
   .$ss <- .$s
   .$r <- -1
-  # .$s is a vector of c(taxi_row, taxi_col, pass_loc, dest_loc)
-  # a is an integer from 1 to 6
-  # return a list of the reward and next .$s
-  # a next s of c(0,0,0,0) means that he successfully dropped off the passenger
-  # and the episode is over.
+  .$count <- .$count + 1
+  # next state of zeros means that he successfully dropped off the passenger and the episode is over.
   if(a==6){
     # if successfully dropping-off the passenger
     if(.$s[3]==5 && all(.$loc.indx(.$s[4])==.$s[1:2])){
@@ -142,14 +146,19 @@ taxi.env$loc.indx <- function(.,i){
   }else if(i==4){return(c(5,4))}
   return(c(0,0)) # index other than 1 to 4
 }
-taxi.env$set.random.state <- function(.){
-  .$s <- c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1))
+taxi.env$set.random.state <- function(., set=TRUE){ # sets .$s to a random state or return it
+  if (set==TRUE){
+    .$s <- c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1))
+  }else{
+    return(c(sample(1:5,1),sample(1:5,1),sample(1:4,1),sample(1:4,1)))
+  }
 }
-taxi.env$set.seed <- function(.,seed){set.seed(seed)}
+taxi.env$add.seed <- function(.,seed){set.seed(seed)}
 taxi.env$update <- function(.){.$s <- .$ss}
 #------------------------------------------------
 # Usage :
-# t <- as.proto(taxi.env)
-# t$set.random.state(); t$render()
-# t$step(a=1); t$update(); t$render()
+#t <- taxi.env$proto(0)
+#t$set.random.state(); t$render()
+#t$step(a=1); t$update(); t$render()
 # t$s <- t$decode(150); t$render()
+#$add.seed(12)

@@ -245,6 +245,32 @@ The last function when called with an initial $i=7$-Root- it simulates a full ep
 %------------------------------------------------
 \section{Qlearning method}
 \section{Results}
+MAXQ has 4 parameters to tune. The learning rate $\alpha$, the discounting rate $\gamma$, the policy\'s $\epsilon$ and the number of simulated episodes.\\
+After many trials, I have chosen the following parameters: $\alpha=.8, \gamma=.999, \epsilon=.01, n=2000$. For $\alpha$ to be that high means we put more weight on newer episodes than old ones. Although in theory that should give better results, in our experiment, $\alpha$'s best value is .8. Here below is a plot showing the evolution of rewards overtime and comparing the model with two different values of $\alpha$. It is clear that the higher $\alpha$ achieved higher rewards.\\
+ 
+\begin{figure}[hbtp]
+\centering
+\includegraphics[scale=.8]{RplotHL2.png}
+\caption{..}
+\end{figure}
+Another note is the value of $\gamma$. The models performs well with gamma is 1 compared to values like $.9$ or $.8$. However, I chose the value $.999$ to filter out actions that requires very high number of steps. For example if the agent took 1000 steps to navigate to the destination, then $.999^{1000}=.367$ would give that action a lower value estimate.\\
+Finally, I have looked at the statistical summaries \\
+
+\begin{tabular}{c|c|c|c|c}
+ min & median & mean & max & variance \\
+ \hline
+ -244 & 9 & 3 & 20 & 585.8
+ \end{tabular} \\
+and from the first glance we notice the high variance. However, as in the plot above, for the first 500 episodes the rewards fluctuate a lot and therefore, lets consider only the values starting from episode number 500.\\
+
+\begin{tabular}{c|c|c|c|c}
+ min & median & mean & max & variance \\
+ \hline
+ -17 & 10 & 9.3 & 20 & 30.7 
+ \end{tabular} \\
+
+Although the experiment still exhibits  high variance, it is much lower than the first 500 episodes. Also the proximity between the mean and median shows some kind of stability in the rewards.
+
 \section{Similar projects}
 \section{Final thoughts}
 
