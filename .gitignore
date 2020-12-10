@@ -1,0 +1,6 @@
+
+*.RData
+.Rhistory
+out
+data
+*.gz
