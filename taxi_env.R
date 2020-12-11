@@ -157,7 +157,7 @@ taxi.env$add.seed <- function(.,seed){set.seed(seed)}
 taxi.env$update <- function(.){.$s <- .$ss}
 #------------------------------------------------
 # Usage :
-#t <- taxi.env$proto(0)
+#t <- taxi.env$proto()
 #t$set.random.state(); t$render()
 #t$step(a=1); t$update(); t$render()
 # t$s <- t$decode(150); t$render()
