@@ -1,0 +1,38 @@
+---
+title: "Code Structure"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results="hide", eval=FALSE)
+```
+
+# File 1: taxi_env.R [Environment]
+
+This files contains all the functions related to the environment.
+To use it, you need to create an object 
+```{r}
+source("taxi_env.R")
+obj <- taxi.env$proto()
+```
+
+# File 2: MAXQ0.R [MAXQ]
+
+That one uses the taxi environment above to apply MAXQ method.
+To use it, you also need to create an object
+```{r}
+source('MAXQ0.R')
+obj <- MAXQ0$proto()
+```
+
+# File 3: Qlearning.R [Q-learning]
+
+Also applies Qlearning to the taxi environment. A set of methods are defined and no need to create objects just call 
+```{r}
+source('Qlearning.R')
+output <- trainQlearning(0.4,0.999,0.017)
+```
+
+# File 4: main.R
+
+This file uses all the files above to train the agent on the taxi environment.
